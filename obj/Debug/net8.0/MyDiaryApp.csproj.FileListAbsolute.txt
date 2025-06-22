@@ -349,3 +349,4 @@ C:\Users\elifd\Documents\GitHub\Mydiaryapp\obj\Debug\net8.0\refint\MyDiaryApp.dl
 C:\Users\elifd\Documents\GitHub\Mydiaryapp\obj\Debug\net8.0\MyDiaryApp.pdb
 C:\Users\elifd\Documents\GitHub\Mydiaryapp\obj\Debug\net8.0\MyDiaryApp.genruntimeconfig.cache
 C:\Users\elifd\Documents\GitHub\Mydiaryapp\obj\Debug\net8.0\ref\MyDiaryApp.dll
+C:\Users\elifd\Documents\GitHub\Mydiaryapp\bin\Debug\net8.0\Microsoft.AspNetCore.Authentication.JwtBearer.dll

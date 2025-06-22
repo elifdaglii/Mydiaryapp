@@ -1,57 +1,59 @@
-using Microsoft.AspNetCore.Identity; // UserManager, SignInManager, IdentityUser için
-using Microsoft.AspNetCore.Mvc;     // ControllerBase, IActionResult, HttpPost, Route için
-using MyDiaryApp.DTOs;             // RegisterDto için
-using MyDiaryApp.Models;           // User modelimiz için
-using System.Threading.Tasks;      // Task için
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using MyDiaryApp.DTOs;
+using MyDiaryApp.Models;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Configuration; // Bu using'i eklemiştin, doğru
+using Microsoft.IdentityModel.Tokens;    // Bu using'i eklemiştin, doğru
+using System;
+using System.Collections.Generic;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 
 namespace MyDiaryApp.Controllers
 {
-    [ApiController] // Bu sınıfın bir API controller olduğunu belirtir
-    [Route("api/[controller]")] // API endpoint'inin yolu: /api/auth olacak
-    public class AuthController : ControllerBase // API controller'ları için temel sınıf
+    [ApiController]
+    [Route("api/[controller]")]
+    public class AuthController : ControllerBase
     {
         private readonly UserManager<User> _userManager;
-        // private readonly SignInManager<User> _signInManager; // Login için sonra ekleyeceğiz
-        // private readonly IConfiguration _configuration; // Token oluşturma için sonra ekleyeceğiz
+        private readonly SignInManager<User> _signInManager; // Artık yorum değil
+        private readonly IConfiguration _configuration;     // Artık yorum değil
 
-        // Constructor (Yapıcı Metot) - Gerekli servisleri enjekte ediyoruz
-        public AuthController(UserManager<User> userManager) // SignInManager ve IConfiguration'ı sonra ekleyeceğiz
+        // Constructor (Yapıcı Metot) - GÜNCELLENDİ
+        public AuthController(
+            UserManager<User> userManager,
+            SignInManager<User> signInManager, // PARAMETRE EKLENDİ
+            IConfiguration configuration)      // PARAMETRE EKLENDİ
         {
             _userManager = userManager;
-            // _signInManager = signInManager;
-            // _configuration = configuration;
+            _signInManager = signInManager;     // ATAMA YAPILDI
+            _configuration = configuration;     // ATAMA YAPILDI
         }
 
         // POST api/auth/register
         [HttpPost("register")]
         public async Task<IActionResult> Register(RegisterDto registerDto)
         {
-            // Gelen verinin geçerli olup olmadığını kontrol et (DTO'daki Data Annotations sayesinde)
             if (!ModelState.IsValid)
             {
-                return BadRequest(ModelState); // Geçersizse 400 Bad Request ve hataları döndür
+                return BadRequest(ModelState);
             }
 
-            // Yeni bir User nesnesi oluştur
             var user = new User
             {
-                UserName = registerDto.Username, // IdentityUser'da UserName zorunludur
+                UserName = registerDto.Username,
                 Email = registerDto.Email
-                // PasswordHash, UserManager tarafından CreateAsync içinde otomatik olarak oluşturulacak
             };
 
-            // UserManager'ı kullanarak kullanıcıyı şifresiyle birlikte oluştur
             var result = await _userManager.CreateAsync(user, registerDto.Password);
 
             if (result.Succeeded)
             {
-                // Kullanıcı başarıyla oluşturuldu
-                // Şimdilik basit bir mesaj döndürelim.
-                // İleride oluşturulan kullanıcıyı veya bir token'ı döndürebiliriz.
                 return StatusCode(201, new { Message = "Kullanıcı başarıyla oluşturuldu." });
             }
 
-            // Eğer kullanıcı oluşturma başarısız olduysa, hataları döndür
             foreach (var error in result.Errors)
             {
                 ModelState.AddModelError(string.Empty, error.Description);
@@ -59,6 +61,53 @@ namespace MyDiaryApp.Controllers
             return BadRequest(ModelState);
         }
 
-        // Login endpoint'i buraya eklenecek (sonraki adımda)
-    }
-}
+        // POST api/auth/login
+        [HttpPost("login")]
+        public async Task<IActionResult> Login(LoginDto loginDto)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var user = await _userManager.FindByEmailAsync(loginDto.Email);
+            if (user == null)
+            {
+                return Unauthorized(new { Message = "Geçersiz e-posta veya şifre." });
+            }
+
+            var result = await _signInManager.CheckPasswordSignInAsync(user, loginDto.Password, lockoutOnFailure: false);
+
+            if (result.Succeeded)
+            {
+                var tokenString = GenerateJwtToken(user);
+                return Ok(new { Token = tokenString, Message = "Giriş başarılı." });
+            }
+
+            return Unauthorized(new { Message = "Geçersiz e-posta veya şifre." });
+        }
+
+        private string GenerateJwtToken(User user)
+        {
+            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JwtSettings:SecretKey"]!));
+            var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
+
+            var claims = new[]
+            {
+                new Claim(JwtRegisteredClaimNames.Sub, user.UserName!),
+                new Claim(JwtRegisteredClaimNames.Email, user.Email!),
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                new Claim("uid", user.Id)
+            };
+
+            var token = new JwtSecurityToken(
+                issuer: _configuration["JwtSettings:Issuer"],
+                audience: _configuration["JwtSettings:Audience"],
+                claims: claims,
+                expires: DateTime.UtcNow.AddHours(1),
+                signingCredentials: credentials);
+
+            return new JwtSecurityTokenHandler().WriteToken(token);
+        }
+    } // AuthController sınıfının kapanışı
+} 

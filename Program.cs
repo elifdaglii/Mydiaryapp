@@ -1,3 +1,6 @@
+using System.Text; // Encoding.UTF8.GetBytes için
+using Microsoft.AspNetCore.Authentication.JwtBearer; // JwtBearerDefaults için
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using MyDiaryApp.Data;
@@ -24,7 +27,29 @@ builder.Services.AddIdentity<User, IdentityRole>(options =>
 })
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders(); // Şifre sıfırlama gibi işlemler için token üreticilerini ekler
-
+// JWT Authentication/Authorization Ayarları
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.SaveToken = true; // Token'ı HttpContext'te sakla
+    options.RequireHttpsMetadata = false; // Geliştirme ortamında HTTPS zorunluluğunu kaldırabiliriz, production'da true olmalı
+    options.TokenValidationParameters = new TokenValidationParameters()
+    {
+        ValidateIssuer = true, // Yayıncıyı doğrula
+        ValidateAudience = true, // Hedef kitleyi doğrula
+        ValidateLifetime = true, // Token'ın ömrünü doğrula
+        ValidateIssuerSigningKey = true, // İmza anahtarını doğrula
+        ValidIssuer = builder.Configuration["JwtSettings:Issuer"], // appsettings.json'dan al
+        ValidAudience = builder.Configuration["JwtSettings:Audience"], // appsettings.json'dan al
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JwtSettings:SecretKey"]!)) // appsettings.json'dan al
+        // ClockSkew = TimeSpan.Zero // Token süresinin dolmasına ne kadar tolerans tanınacağı (varsayılan 5Har dk)
+    };
+});
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
