@@ -23,7 +23,7 @@ namespace MyDiaryApp.Models
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedAt { get; set; }
 
-        public int UserId { get; set; }
+        public string UserId { get; set; } = null!; // Tipi string olarak değiştirildi ve null forgiving eklendi
 
         [ForeignKey("UserId")]
         public User User { get; set; } = null!; // EKLENDİ
