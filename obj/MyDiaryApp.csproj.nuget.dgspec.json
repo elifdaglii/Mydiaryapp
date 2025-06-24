@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\elifd\\Documents\\GitHub\\Mydiaryapp\\MyDiaryApp.csproj": {}
+    "C:\\Users\\elifd\\Documents\\GitHub\\MyDiaryApp\\MyDiaryApp.csproj": {}
   },
   "projects": {
-    "C:\\Users\\elifd\\Documents\\GitHub\\Mydiaryapp\\MyDiaryApp.csproj": {
+    "C:\\Users\\elifd\\Documents\\GitHub\\MyDiaryApp\\MyDiaryApp.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\elifd\\Documents\\GitHub\\Mydiaryapp\\MyDiaryApp.csproj",
+        "projectUniqueName": "C:\\Users\\elifd\\Documents\\GitHub\\MyDiaryApp\\MyDiaryApp.csproj",
         "projectName": "MyDiaryApp",
-        "projectPath": "C:\\Users\\elifd\\Documents\\GitHub\\Mydiaryapp\\MyDiaryApp.csproj",
+        "projectPath": "C:\\Users\\elifd\\Documents\\GitHub\\MyDiaryApp\\MyDiaryApp.csproj",
         "packagesPath": "C:\\Users\\elifd\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\elifd\\Documents\\GitHub\\Mydiaryapp\\obj\\",
+        "outputPath": "C:\\Users\\elifd\\Documents\\GitHub\\MyDiaryApp\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
