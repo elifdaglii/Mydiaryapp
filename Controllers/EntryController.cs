@@ -105,7 +105,7 @@ namespace MyDiaryApp.Controllers
                 Title = createEntryDto.Title,
                 Content = createEntryDto.Content,
                 Mood = createEntryDto.Mood,
-                CreatedAt = DateTime.UtcNow,
+                CreatedAt = DateTime.Now, // FIXED: UTC yerine local time kullanıyoruz
                 UserId = userId // Günlüğü oluşturan kullanıcının Id'si
             };
 
@@ -152,7 +152,7 @@ namespace MyDiaryApp.Controllers
             entry.Title = updateEntryDto.Title;
             entry.Content = updateEntryDto.Content;
             entry.Mood = updateEntryDto.Mood;
-            entry.UpdatedAt = DateTime.UtcNow;
+            entry.UpdatedAt = DateTime.Now; // FIXED: UTC yerine local time kullanıyoruz
 
             try
             {
@@ -175,12 +175,14 @@ namespace MyDiaryApp.Controllers
 
             return NoContent(); // Başarılı güncellemede genellikle 204 No Content döndürülür
         }
-[AllowAnonymous] // BU ÖNEMLİ: Bu endpoint için yetkilendirme GEREKMESİN
-    [HttpGet("test")] // Yolu /api/entries/test olacak
-    public IActionResult TestEndpoint()
-    {
-        return Ok("EntryController test endpoint basariyla calisti!");
-    }
+
+        [AllowAnonymous] // BU ÖNEMLİ: Bu endpoint için yetkilendirme GEREKMESİN
+        [HttpGet("test")] // Yolu /api/entries/test olacak
+        public IActionResult TestEndpoint()
+        {
+            return Ok("EntryController test endpoint basariyla calisti!");
+        }
+
         // DELETE: api/entries/{id} (Belirli bir günlüğü siler)
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteEntry(int id)
