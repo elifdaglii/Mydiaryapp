@@ -1,59 +1,108 @@
-using System.Text; // Encoding.UTF8.GetBytes için
-using Microsoft.AspNetCore.Authentication.JwtBearer; // JwtBearerDefaults için
-using Microsoft.IdentityModel.Tokens;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 using MyDiaryApp.Data;
 using MyDiaryApp.Models;
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
+builder.Services.AddControllers();
 
-// Veritabanı bağlantısını ekle (DbContext)
+// Entity Framework
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// ASP.NET Core Identity servislerini ekle
-builder.Services.AddIdentity<User, IdentityRole>(options =>
-{
-    // İsteğe bağlı: Şifre ayarları
-    options.Password.RequireDigit = true;       // Şifrede rakam olsun mu?
-    options.Password.RequireLowercase = true;   // Küçük harf olsun mu?
-    options.Password.RequireUppercase = true;   // Büyük harf olsun mu?
-    options.Password.RequireNonAlphanumeric = false; // Özel karakter (@,!,# vb.) olsun mu?
-    options.Password.RequiredLength = 6;        // Minimum şifre uzunluğu
-})
+// Identity
+builder.Services.AddIdentity<User, IdentityRole>()
     .AddEntityFrameworkStores<ApplicationDbContext>()
-    .AddDefaultTokenProviders(); // Şifre sıfırlama gibi işlemler için token üreticilerini ekler
-// JWT Authentication/Authorization Ayarları
+    .AddDefaultTokenProviders();
+
+// Identity Options
+builder.Services.Configure<IdentityOptions>(options =>
+{
+    // Password settings
+    options.Password.RequiredLength = 6;
+    options.Password.RequireDigit = false;
+    options.Password.RequireLowercase = false;
+    options.Password.RequireUppercase = false;
+    options.Password.RequireNonAlphanumeric = false;
+
+    // User settings
+    options.User.RequireUniqueEmail = true;
+    options.User.AllowedUserNameCharacters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._@+";
+
+    // Signin settings
+    options.SignIn.RequireConfirmedEmail = false;
+    options.SignIn.RequireConfirmedPhoneNumber = false;
+});
+
+// JWT Authentication
+var jwtSettings = builder.Configuration.GetSection("JwtSettings");
+var secretKey = jwtSettings["SecretKey"];
+
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
 })
 .AddJwtBearer(options =>
 {
-    options.SaveToken = true; // Token'ı HttpContext'te sakla
-    options.RequireHttpsMetadata = false; // Geliştirme ortamında HTTPS zorunluluğunu kaldırabiliriz, production'da true olmalı
-    options.TokenValidationParameters = new TokenValidationParameters()
+    options.TokenValidationParameters = new TokenValidationParameters
     {
-        ValidateIssuer = true, // Yayıncıyı doğrula
-        ValidateAudience = true, // Hedef kitleyi doğrula
-        ValidateLifetime = true, // Token'ın ömrünü doğrula
-        ValidateIssuerSigningKey = true, // İmza anahtarını doğrula
-        ValidIssuer = builder.Configuration["JwtSettings:Issuer"], // appsettings.json'dan al
-        ValidAudience = builder.Configuration["JwtSettings:Audience"], // appsettings.json'dan al
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JwtSettings:SecretKey"]!)) // appsettings.json'dan al
-        // ClockSkew = TimeSpan.Zero // Token süresinin dolmasına ne kadar tolerans tanınacağı (varsayılan 5Har dk)
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = jwtSettings["Issuer"],
+        ValidAudience = jwtSettings["Audience"],
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
+        ClockSkew = TimeSpan.Zero
     };
 });
-builder.Services.AddControllers();
+
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo 
+    { 
+        Title = "My Diary API", 
+        Version = "v1",
+        Description = "A simple diary/journal API with JWT authentication"
+    });
+
+    // JWT Authorization için Swagger konfigürasyonu
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Description = "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
+        Name = "Authorization",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.ApiKey,
+        Scheme = "Bearer"
+    });
+
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                },
+                Scheme = "oauth2",
+                Name = "Bearer",
+                In = ParameterLocation.Header
+            },
+            new List<string>()
+        }
+    });
+});
 
 var app = builder.Build();
 
@@ -61,13 +110,18 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "My Diary API V1");
+        c.RoutePrefix = "swagger";
+    });
 }
 
 app.UseHttpsRedirection();
 
-app.UseAuthentication(); // Önce kimlik doğrulama
-app.UseAuthorization();  // Sonra yetkilendirme
+// Authentication & Authorization middleware (ORDER IS IMPORTANT!)
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapControllers();
 

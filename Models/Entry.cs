@@ -1,7 +1,5 @@
-using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using MyDiaryApp.Models; // User için bu using gerekli olabilir, kontrol et
 
 namespace MyDiaryApp.Models
 {
@@ -11,21 +9,26 @@ namespace MyDiaryApp.Models
         public int Id { get; set; }
 
         [Required]
-        [MaxLength(200)]
-        public string Title { get; set; } = null!; // EKLENDİ
+        [StringLength(200)]
+        public string Title { get; set; } = string.Empty;
 
         [Required]
-        public string Content { get; set; } = null!; // EKLENDİ
+        [StringLength(5000)]
+        public string Content { get; set; } = string.Empty;
 
-        [MaxLength(50)]
+        [StringLength(50)]
         public string? Mood { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        
         public DateTime? UpdatedAt { get; set; }
 
-        public string UserId { get; set; } = null!; // Tipi string olarak değiştirildi ve null forgiving eklendi
+        // Foreign Key
+        [Required]
+        public string UserId { get; set; } = string.Empty;
 
+        // Navigation property
         [ForeignKey("UserId")]
-        public User User { get; set; } = null!; // EKLENDİ
+        public virtual User User { get; set; } = null!;
     }
 }

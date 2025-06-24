@@ -12,8 +12,8 @@ using MyDiaryApp.Data;
 namespace MyDiaryApp.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250622011119_InitialSetupWithCorrectTypes")]
-    partial class InitialSetupWithCorrectTypes
+    [Migration("20250624010858_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -35,6 +35,7 @@ namespace MyDiaryApp.Migrations
 
                     b.Property<string>("Content")
                         .IsRequired()
+                        .HasMaxLength(5000)
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("CreatedAt")
@@ -79,6 +80,11 @@ namespace MyDiaryApp.Migrations
 
                     b.Property<bool>("EmailConfirmed")
                         .HasColumnType("bit");
+
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<bool>("LockoutEnabled")
                         .HasColumnType("bit");
